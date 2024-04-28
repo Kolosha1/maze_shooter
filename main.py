@@ -37,7 +37,7 @@ enemy1_img = image.load('__Bat02_Idle_001.png')
 enemy2_img = image.load('frame-2.png')
 bullet_img  = image.load('pngwing.com (1).png')
 wall_img = image.load('stone_gray2.png')
-exit_img = image.load('dngn_closed_door.png')
+treasure_img = image.load('dngn_closed_door.png')
 coins_img = image.load('coin 2.png')
 apples_img = image.load('apple.png')
 sprites = sprite.Group()
@@ -46,6 +46,8 @@ class GameSprite(sprite.Sprite):
     def __init__(self, sprite_image, width, height, x, y):
         super().__init__()
         self.image = transform.scale(sprite_image, (width, height))
+        self.right_image = self.image
+        self.left_image = transform.flip(self.image,flip_x=True,flip_y=False)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -56,32 +58,35 @@ class GameSprite(sprite.Sprite):
 class Player(GameSprite):
     def __init__(self, sprite_image, width, height, x, y):
         super().__init__(sprite_image, width, height, x, y)
-        self.hp = 260
-        self.damage = 52
+        self.hp = 5
+        self.damage = 1
         self.coins = 0
         self.speed = 5
+        self.dir = "right"
 
     def update(self):
         global hp_label
         self.old_pos = self.rect.x, self.rect.y
         keys = key.get_pressed() #отримуємо список натиснутих клавіш
         if keys[K_w] and self.rect.y > 0:
-            if self.rect.y > 250:
-                self.rect.y -= self.speed
-            self.bg_speed = 4
-        elif keys[K_s] and self.rect.bottom < HEIGHT:
+            self.rect.y -= self.speed
+        if keys[K_s] and self.rect.bottom < HEIGHT:
             self.rect.y += self.speed
-            self.bg_speed = 1
-        else:
-            self.bg_speed = 2
-            
         if keys[K_a] and self.rect.left > 0:
             self.rect.x -= self.speed
+            self.dir = "left"
+            self.image = self.left_image
         if keys[K_d] and self.rect.right < WIDTH    :
             self.rect.x += self.speed
+            self.dir = "right"
+            self.image = self.right_image
+
+        collidelist = sprite.spritecollide(self, walls, False)
+        if len(collidelist) > 0: # при зіткненні будь-якого спрайту з spritegroup1 із будьяким спрайтом з spritegroup2
+            self.rect.x, self.rect.y = self.old_pos 
 
     def fire(self):
-        bullet = Bullet(self.rect.centerx, self.rect.y)
+        bullet = Bullet(self.dir,self.rect.centerx, self.rect.centery +15)
         fire_sound.play()
 
 enemys = sprite.Group()
@@ -89,8 +94,8 @@ class Enemy(GameSprite):
     def __init__(self,enemy_img, x, y):
         super().__init__(enemy_img, TILESIZE, TILESIZE-10, x, y)
         self.rect.centery=y
-        self.hp = 104
-        self.damage = 52
+        self.hp = 3
+        self.damage = 1
         self.speed = 5
         self.dir_list = ['left', 'right', 'up', 'down']
         self.dir = choice(self.dir_list)
@@ -114,15 +119,23 @@ class Enemy(GameSprite):
 
 bullets =  sprite.Group()
 class Bullet(GameSprite):
-    def __init__(self,player_x,player_y):
+    def __init__(self,dir,player_x,player_y):
         super().__init__(bullet_img,20,40,player_x,player_y)
         self.rect.centerx = player_x
         self.rect.bottom = player_y
         self.speed = 5
         bullets.add(self)
+        self.dir=dir
+        if self.dir == "left":
+            self.image = transform.flip(self.image,flip_x=True,flip_y=False)
+       
+
 
     def update(self):
-        self.rect.y -= self.speed 
+        if self.dir == "right":
+            self.rect.x += self.speed 
+        if self.dir == "left":
+            self.rect.x -= self.speed
         if self.rect.y < 0 :
             self.kill()
 
@@ -136,6 +149,7 @@ class Wall(GameSprite):
 player = Player(player_img, TILESIZE, TILESIZE,  300, 300)
 coins = sprite.Group()
 apples = sprite.Group()
+treasure = sprite.Group()
 hp_label = font1.render(f"HP: {player.hp}",True,(255,255,255))  
 GG_text = font2.render("You loose", True,(255,0,0))
 coins_label = font1.render(f"coins: {player.coins}",True,(255,255,255))
@@ -155,7 +169,7 @@ with open("lvl1.txt", "r") as file:
                 player.rect.y = y
                 player.start_x, player.start_y = x,y
             elif symbol == "T":
-                treasure  = GameSprite(exit_img,TILESIZE,TILESIZE,x,y)
+                treasure  = GameSprite(treasure_img,TILESIZE,TILESIZE,x,y)
             elif symbol == "C":
                 coins.add(GameSprite(coins_img,TILESIZE,TILESIZE,x,y))
             elif symbol == "A":
@@ -210,35 +224,44 @@ while True:
         now = time.get_ticks()
         
 
-        # bullets_collide = sprite.groupcollide(bullets, enemys, True, True, sprite.collide_mask)
-        # for enemy in bullets_collide:
-        #     player.points += 1
-        #     points_label = font1.render(f"points: {player.points}",True,(255,255,255))
+        walls_collide = sprite.groupcollide( walls,bullets,False, True, sprite.collide_mask)
+        bullets_collide = sprite.groupcollide( enemys,bullets,False, True, sprite.collide_mask)
+        for enemy in bullets_collide:
+            enemy.hp -= 1   
+            if enemy.hp <= 0:
+                enemy.kill()
 
-
+  
 
         collide_list = sprite.spritecollide(player,enemys,False,sprite.collide_mask)
 
         for enemy in collide_list:
-            player.hp -= 50
+            player.hp -= 1
             hp_label = font1.render(f"HP: {player.hp}",True,(255,255,255)) 
             enemys.remove(enemy)
 
 
         sprites.update()
     
+        if sprite.spritecollide(player,apples,True):
+            player.hp +=2
+            hp_label = font1.render(f"HP: {player.hp}",True,(255,255,255))
 
-        if player.hp <= 0:
-            GG = True
+
         if sprite.spritecollide(player,coins,True):
             player.coins += 1
             coins_label = font1.render(f"coins: {player.coins}",True,(255,255,255))
 
         if player.hp <= 0:
             GG = True
-        if sprite.collide_rect(player):
+        if sprite.spritecollide(player,enemys,True):
             GG = True
-            GG_text = font2.render("You win", True,(255,0,0))
+            GG_text = font2.render("Game Over", True,(255,0,0))
+
+        # if sprite.spritecollide(player,treasure,True):
+        #     GG = True
+        #     GG_won = font2.render("You won", True,(255,0,0))
+
 
     window.blit(bg, (0,0))
     sprites.draw(window)
