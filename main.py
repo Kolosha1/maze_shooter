@@ -24,6 +24,8 @@ font2 = font.SysFont("Impact",50)
 # mixer.music.set_volume(0.2)
 # mixer.music.play(loops=-1)
 
+winner_sound = mixer.Sound('winneris.ogg')
+loss_sound = mixer.Sound('untitled_1.mp3')
 fire_sound = mixer.Sound('fire.ogg')
 
 #задай фон сцени
@@ -46,8 +48,6 @@ class GameSprite(sprite.Sprite):
     def __init__(self, sprite_image, width, height, x, y):
         super().__init__()
         self.image = transform.scale(sprite_image, (width, height))
-        self.right_image = self.image
-        self.left_image = transform.flip(self.image,flip_x=True,flip_y=False)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -58,11 +58,15 @@ class GameSprite(sprite.Sprite):
 class Player(GameSprite):
     def __init__(self, sprite_image, width, height, x, y):
         super().__init__(sprite_image, width, height, x, y)
+        self.right_image = self.image
+        self.left_image = transform.flip(self.image,flip_x=True,flip_y=False)
         self.hp = 5
         self.damage = 1
         self.coins = 0
         self.speed = 5
         self.dir = "right"
+        self.level = 1
+
 
     def update(self):
         global hp_label
@@ -93,9 +97,11 @@ enemys = sprite.Group()
 class Enemy(GameSprite):
     def __init__(self,enemy_img, x, y):
         super().__init__(enemy_img, TILESIZE, TILESIZE-10, x, y)
+        self.left_image = self.image
+        self.right_image = transform.flip(self.image,flip_x=True,flip_y=False)
         self.rect.centery=y
         self.hp = 3
-        self.damage = 1
+        self.damage = 2
         self.speed = 5
         self.dir_list = ['left', 'right', 'up', 'down']
         self.dir = choice(self.dir_list)
@@ -104,8 +110,10 @@ class Enemy(GameSprite):
     def update(self):
         self.old_pos = self.rect.x, self.rect.y
         if self.dir == 'right':
+            self.image = self.right_image
             self.rect.x += self.speed
         elif self.dir == 'left':
+            self.image = self.left_image
             self.rect.x -= self.speed
         elif self.dir == 'up':
             self.rect.y -= self.speed
@@ -146,6 +154,7 @@ class Wall(GameSprite):
         super().__init__(wall_img, TILESIZE, TILESIZE, x, y)
         walls.add(self)
 
+
 player = Player(player_img, TILESIZE, TILESIZE,  300, 300)
 coins = sprite.Group()
 apples = sprite.Group()
@@ -155,58 +164,33 @@ GG_text = font2.render("You loose", True,(255,0,0))
 coins_label = font1.render(f"coins: {player.coins}",True,(255,255,255))
 GG = False
 
-with open("lvl1.txt", "r") as file: 
-    x, y = 0, 0
-    map = file.readlines()
-    for row in map:
-        for symbol in row:
-            if symbol == 'W':
-                Wall(x,y)
-            elif symbol == 'E':
-                Enemy(enemy2_img,x,y)
-            elif symbol == 'P':
-                player.rect.x = x
-                player.rect.y = y
-                player.start_x, player.start_y = x,y
-            elif symbol == "T":
-                treasure  = GameSprite(treasure_img,TILESIZE,TILESIZE,x,y)
-            elif symbol == "C":
-                coins.add(GameSprite(coins_img,TILESIZE,TILESIZE,x,y))
-            elif symbol == "A":
-                apples.add(GameSprite(apples_img,TILESIZE,TILESIZE,x,y))
-            x += TILESIZE
-        y+=TILESIZE
-        x = 0
-
-# TILESIZE = 45
-# MAP_WIDTH, MAP_HEIGHT = 25, 20
-# WIDTH, HEIGHT = TILESIZE*MAP_WIDTH, TILESIZE*MAP_HEIGHT
-# FPS = 60
-
-# with open("lvl2.txt", "r") as file:
-#     x, y = 0, 0
-#     map = file.readlines()
-#     for row in map:
-#         for symbol in row:
-#             if symbol == 'W':
-#                 Wall(x,y)
-#             elif symbol == 'E':
-#                 Enemy(enemy2_img,x,y)
-#             elif symbol == 'P':
-#                 player.rect.x = x
-#                 player.rect.y = y
-#                 player.start_x, player.start_y = x,y
-#             elif symbol == "T":
-#                 treasure  = GameSprite(exit_img,TILESIZE,TILESIZE,x,y)
-#             elif symbol == "C":
-#                 coins.add(GameSprite(coins_img,TILESIZE,TILESIZE,x,y))
-#             elif symbol == "A":
-#                 apples.add(GameSprite(apples_img,TILESIZE,TILESIZE,x,y))
-#             x += TILESIZE
-#         y+=TILESIZE
-#         x = 0
-
-
+def start_lvl(level):
+    for s in sprites:
+        if s is not player:
+            s.kill()
+    with open(f"lvl{level}.txt", "r") as file: 
+        x, y = 0, 0
+        map = file.readlines()
+        for row in map:
+            for symbol in row:
+                if symbol == 'W':
+                    Wall(x,y)
+                elif symbol == 'E':
+                    Enemy(enemy2_img,x,y)
+                elif symbol == 'P':
+                    player.rect.x = x
+                    player.rect.y = y
+                    player.start_x, player.start_y = x,y
+                elif symbol == "T":
+                    treasure.add( GameSprite(treasure_img,TILESIZE,TILESIZE,x,y))
+                elif symbol == "C":
+                    coins.add(GameSprite(coins_img,TILESIZE,TILESIZE,x,y))
+                elif symbol == "A":
+                    apples.add(GameSprite(apples_img,TILESIZE,TILESIZE,x,y))
+                x += TILESIZE
+            y+=TILESIZE
+            x = 0
+start_lvl(player.level)
 
 while True:
     #оброби подію «клік за кнопкою "Закрити вікно"
@@ -244,7 +228,7 @@ while True:
         sprites.update()
     
         if sprite.spritecollide(player,apples,True):
-            player.hp +=2
+            player.hp +=1
             hp_label = font1.render(f"HP: {player.hp}",True,(255,255,255))
 
 
@@ -255,12 +239,25 @@ while True:
         if player.hp <= 0:
             GG = True
         if sprite.spritecollide(player,enemys,True):
-            GG = True
-            GG_text = font2.render("Game Over", True,(255,0,0))
+            player.hp -= 2
+            hp_label = font1.render(f"HP: {player.hp}",True,(255,255,255))
+            if player.hp <= 0:    
+                GG = True
+                GG_text = font2.render("Game Over", True,(255,0,0))
+                loss_sound.play()
 
-        # if sprite.spritecollide(player,treasure,True):
-        #     GG = True
-        #     GG_won = font2.render("You won", True,(255,0,0))
+
+
+        if sprite.spritecollide(player,treasure,False):
+            if player.level == 2:
+                GG=True
+                GG_text = font2.render("You Won", True,(255,0,0))
+                winner_sound.play()
+            else:
+                player.level +=1
+                start_lvl(player.level)
+        
+
 
 
     window.blit(bg, (0,0))

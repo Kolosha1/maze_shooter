@@ -1,15 +1,15 @@
-WCWWWWW  WWWWWWWWWWWW
-T  WCWCC   E        W
-W E   WWWWWWWW      W
-W   W               W
+WWWWWWW  WWWWWWWWWWWW
+W  WCWCCA           W
+W E   WWWWWWWW   E  W
+W   W      E        W
 W  W WWWWWWWWWWWW   W
-W  W    E  WCC   E  W
-W  W  WCCCCWWWWWWW  W
-W  W  WCCCCW        W
+W  W       WCC   E  W
+W  W  WCECCWWWWWWW  W
+W  W  WCCCTW        W
 W  W  WWWWWW    WWWWW      
 W  W  WC WWWWW      W
-W     WCWCC  WW     W
-WCCC  E WW     E    W
-WWWWWWWWCCWWWWWWWWW W
-WP         E      CCW
+W    W CWCC  WW     W
+WCCE A WAW     E    W
+WWWWWWW ECWWWWWWWWW W
+WP            AA  CCW
 WWCCCWWWWWWWWWWWWWWWW
